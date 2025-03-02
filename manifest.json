@@ -1,0 +1,10 @@
+﻿{
+  "Name": "Weapon Stats",
+  "Author": "Snake",
+  "Version": "0.9.0",
+  "Description": "Shows more useful weapon stats on weapon tooltips, overriding the existing tooltips to show them.",
+  "UniqueID": "Snake.WeaponStats",
+  "EntryDll": "WeaponStats.dll",
+  "MinimumApiVersion": "4.0.0",
+  "UpdateKeys": []
+}
