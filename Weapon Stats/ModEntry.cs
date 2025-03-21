@@ -6,6 +6,7 @@ using System.Text;
 using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
@@ -31,9 +32,25 @@ namespace StardewWeaponStatsMod {
             public float Knockback;
         }
 
+        //caching the tooltip language strings for performance
+        internal static string DPSLabel = "DPS";
+        internal static string BaseDamageLabel = "Base";
+        internal static string AverageDamageLabel = "Avg";
+        internal static string DamageLabel = "Damage";
+        internal static string CritChanceLabel = "Crit. Chance";
+        internal static string CritMultLabel = "Crit. Mult";
+        internal static string SpeedLabel = "Speed";
+        internal static string DefenseLabel = "Defense";
+        internal static string KnockbackLabel = "Knockback";
+        
+
         public override void Entry(IModHelper helper) {
             var harmony = new Harmony(this.ModManifest.UniqueID);
             ModMonitor = this.Monitor;
+
+            //this event should be triggered on locale change or game load unless you're starting the game in English. so we'll just call this once at game start as well to make sure the strings are loaded
+            helper.Events.Content.LocaleChanged += this.LocaleChanged;
+            helper.Events.GameLoop.GameLaunched += this.GameLaunched;
 
             //patch the tooltip content draw for weapons
             //this method actually draws the content for the tooltips
@@ -48,6 +65,34 @@ namespace StardewWeaponStatsMod {
                original: AccessTools.Method(typeof(MeleeWeapon), nameof(StardewValley.Tools.MeleeWeapon.getExtraSpaceNeededForTooltipSpecialIcons)),
                prefix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.getExtraSpace_Prefix))
             );
+        }
+
+        private void UpdateLocale() {
+            DPSLabel = this.Helper.Translation.Get("dps").Default(DPSLabel);
+            BaseDamageLabel = this.Helper.Translation.Get("base-damage").Default(BaseDamageLabel);
+            AverageDamageLabel = this.Helper.Translation.Get("average-damage").Default(AverageDamageLabel);
+
+            //ItemHover_Damage
+            DamageLabel = this.Helper.Translation.Get("damage").Default(DamageLabel);
+            //ItemHover_CritChanceBonus
+            CritChanceLabel = this.Helper.Translation.Get("critical-chance").Default(CritChanceLabel);
+            //ItemHover_CritPowerBonus
+            CritMultLabel = this.Helper.Translation.Get("critical-multiplier").Default(CritMultLabel);
+            //ItemHover_Speed
+            SpeedLabel = this.Helper.Translation.Get("speed").Default(SpeedLabel);
+            //ItemHover_DefenseBonus
+            DefenseLabel = this.Helper.Translation.Get("defense").Default(DefenseLabel);
+            //AmethystRing_Description
+            KnockbackLabel = this.Helper.Translation.Get("knockback").Default(KnockbackLabel);
+        }
+
+
+        private void LocaleChanged(object? sender, LocaleChangedEventArgs e) {
+            UpdateLocale();
+        }
+
+        private void GameLaunched(object? sender, GameLaunchedEventArgs e) {
+            UpdateLocale();
         }
 
         public static bool drawTooltip_Prefix(MeleeWeapon __instance, SpriteBatch spriteBatch, ref int x, ref int y, SpriteFont font, float alpha) {
@@ -69,7 +114,7 @@ namespace StardewWeaponStatsMod {
 
                 //DRAW DPS
                 Utility.drawWithShadow(spriteBatch, Game1.mouseCursors, new Vector2(LeftMargin + 4, y + 16 + 4), new Rectangle(120, 428, 10, 10), Color.White, 0f, Vector2.Zero, 4f, flipped: false, 1f);
-                Utility.drawTextWithShadow(spriteBatch, "DPS: " + Math.Round(ModWeaponStats.DPS, 1), font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), Color.DarkRed * alpha);
+                Utility.drawTextWithShadow(spriteBatch, DPSLabel + ": " + Math.Round(ModWeaponStats.DPS, 1), font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), Color.DarkRed * alpha);
                 y += (int)font.MeasureString("TT").Y;
 
                 //DRAW MIN AND MAX DAMAGE
@@ -77,11 +122,11 @@ namespace StardewWeaponStatsMod {
                 if (__instance.hasEnchantmentOfType<RubyEnchantment>()) {
                     damageColor = EnchantmentColor;
                 }
-                Utility.drawTextWithShadow(spriteBatch, "Base: " + __instance.minDamage + "-" + __instance.maxDamage, font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), damageColor * 0.9f * alpha);
+                Utility.drawTextWithShadow(spriteBatch, BaseDamageLabel + ": " + __instance.minDamage.Value + "-" + __instance.maxDamage.Value, font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), damageColor * 0.9f * alpha);
                 y += (int)font.MeasureString("TT").Y;
 
                 //DRAW AVERAGE DAMAGE
-                Utility.drawTextWithShadow(spriteBatch, "Avg: " + Math.Round(ModWeaponStats.AvgDamage, 1), font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), Game1.textColor * 0.9f * alpha);
+                Utility.drawTextWithShadow(spriteBatch, AverageDamageLabel + ": " + Math.Round(ModWeaponStats.AvgDamage, 1), font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), Game1.textColor * 0.9f * alpha);
                 y += (int)Math.Max(font.MeasureString("TT").Y, 48f);
 
                 //DRAW CRIT CHANCE
@@ -90,7 +135,7 @@ namespace StardewWeaponStatsMod {
                     critChanceColor = EnchantmentColor;
                 }
                 Utility.drawWithShadow(spriteBatch, Game1.mouseCursors, new Vector2(LeftMargin + 4, y + 16 + 4), new Rectangle(40, 428, 10, 10), Color.White, 0f, Vector2.Zero, 4f, flipped: false, 1f);
-                Utility.drawTextWithShadow(spriteBatch, "Crit. Chance: " + Math.Round(ModWeaponStats.CritChance * 100) + "%", font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), critChanceColor * 0.9f * alpha);
+                Utility.drawTextWithShadow(spriteBatch, CritChanceLabel + ": " + Math.Round(ModWeaponStats.CritChance * 100) + "%", font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), critChanceColor * 0.9f * alpha);
                 y += (int)Math.Max(font.MeasureString("TT").Y, 48f);
 
                 //DRAW CRIT MULTIPLIER
@@ -99,7 +144,7 @@ namespace StardewWeaponStatsMod {
                     critMultColor = EnchantmentColor;
                 }
                 Utility.drawWithShadow(spriteBatch, Game1.mouseCursors, new Vector2(LeftMargin, y + 16 + 4), new Rectangle(160, 428, 10, 10), Color.White, 0f, Vector2.Zero, 4f, flipped: false, 1f);
-                Utility.drawTextWithShadow(spriteBatch, "Crit. Mult: " + Math.Round(ModWeaponStats.CritMultiplier, 1) + "X", font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), critMultColor * 0.9f * alpha);
+                Utility.drawTextWithShadow(spriteBatch, CritMultLabel + ": " + Math.Round(ModWeaponStats.CritMultiplier, 1) + "X", font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), critMultColor * 0.9f * alpha);
                 y += (int)Math.Max(font.MeasureString("TT").Y, 48f);
 
                 //DRAW SPEED
@@ -108,7 +153,7 @@ namespace StardewWeaponStatsMod {
                 if (__instance.hasEnchantmentOfType<EmeraldEnchantment>()) {
                     c = EnchantmentColor;
                 }
-                Utility.drawTextWithShadow(spriteBatch, "Speed: " + Math.Round((float)1000 / ModWeaponStats.Speed, 1) + "/s", font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), c * 0.9f * alpha);
+                Utility.drawTextWithShadow(spriteBatch, SpeedLabel + ": " + Math.Round((float)1000 / ModWeaponStats.Speed, 1) + "/s", font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), c * 0.9f * alpha);
                 y += (int)Math.Max(font.MeasureString("TT").Y, 48f);
 
                 //DRAW KNOCKBACK
@@ -117,7 +162,7 @@ namespace StardewWeaponStatsMod {
                     knockbackColor = EnchantmentColor;
                 }
                 Utility.drawWithShadow(spriteBatch, Game1.mouseCursors, new Vector2(LeftMargin + 4, y + 16 + 4), new Rectangle(70, 428, 10, 10), Color.White, 0f, Vector2.Zero, 4f, flipped: false, 1f);
-                Utility.drawTextWithShadow(spriteBatch, "Knockback: " + ModWeaponStats.Knockback, font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), knockbackColor * 0.9f * alpha);
+                Utility.drawTextWithShadow(spriteBatch, KnockbackLabel + ": " + Math.Round(ModWeaponStats.Knockback, 1), font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), knockbackColor * 0.9f * alpha);
                 y += (int)Math.Max(font.MeasureString("TT").Y, 48f);
 
                 //DRAW DEFENSE
@@ -127,7 +172,7 @@ namespace StardewWeaponStatsMod {
                         defenseColor = EnchantmentColor;
                     }
                     Utility.drawWithShadow(spriteBatch, Game1.mouseCursors, new Vector2(LeftMargin + 4, y + 16 + 4), new Rectangle(110, 428, 10, 10), Color.White, 0f, Vector2.Zero, 4f, flipped: false, 1f);
-                    Utility.drawTextWithShadow(spriteBatch, "Defense: " + __instance.addedDefense.Value, font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), defenseColor * 0.9f * alpha);
+                    Utility.drawTextWithShadow(spriteBatch, DefenseLabel + ": " + Math.Round((float)__instance.addedDefense.Value, 1), font, new Vector2(LeftMargin + TextLeftMargin, y + 16 + 12), defenseColor * 0.9f * alpha);
                     y += (int)Math.Max(font.MeasureString("TT").Y, 48f);
                 }
 
@@ -149,7 +194,26 @@ namespace StardewWeaponStatsMod {
                         } else {
                             Utility.drawWithShadow(spriteBatch, Game1.mouseCursors2, new Vector2(x + 16 + 4, y + 16 + 4), new Rectangle(127, 35, 10, 10), Color.White, 0f, Vector2.Zero, 4f, flipped: false, 1f);
                         }
-                        Utility.drawTextWithShadow(spriteBatch, ((BaseEnchantment.hideEnchantmentName && !enchantment.IsSecondaryEnchantment()) || (BaseEnchantment.hideSecondaryEnchantName && enchantment.IsSecondaryEnchantment())) ? "???" : enchantment.GetDisplayName(), font, new Vector2(x + 16 + 52, y + 16 + 12), c7 * 0.9f * alpha);
+
+                        string enchantmentText = enchantment.GetDisplayName();
+                        switch (enchantment) {
+                            case AttackEnchantment:
+                                enchantmentText = "+" + (int)(enchantment.Level * 3) + " " + DamageLabel;
+                                break;
+                            case CritEnchantment:
+                                enchantmentText = "+" + (int)(enchantment.Level * 2) + "% " + CritChanceLabel;
+                                break;
+                            case CritPowerEnchantment:
+                                enchantmentText = "+" + (enchantment.Level * 50) + "% " + CritMultLabel;
+                                break;
+                            case WeaponSpeedEnchantment:
+                                enchantmentText = "+" + (enchantment.Level * 10) + "% " + SpeedLabel;
+                                break;
+                            case LightweightEnchantment:
+                                enchantmentText = "-" + (enchantment.Level * 10) + "% " + KnockbackLabel;
+                                break;
+                        }
+                        Utility.drawTextWithShadow(spriteBatch, enchantmentText, font, new Vector2(x + 16 + 52, y + 16 + 12), c7 * 0.9f * alpha);
                         y += (int)Math.Max(font.MeasureString("TT").Y, 48f);
                     }
                 }
@@ -169,23 +233,32 @@ namespace StardewWeaponStatsMod {
                 Point dimensions = new Point(0, 0);
                 var ModGetDescriptionWidth = AccessTools.Method(__instance.GetType().BaseType, "getDescriptionWidth");
 
-                //title plus money value
-                dimensions.Y += Math.Max(60, (int)((boldTitleText != null) ? (Game1.dialogueFont.MeasureString(boldTitleText).Y + 16f) : 0f) + 32) + (int)font.MeasureString("T").Y + (int)((moneyAmountToDisplayAtBottom > -1) ? (font.MeasureString(moneyAmountToDisplayAtBottom.ToString() ?? "").Y + 4f) : 0f);
+                //title
+                dimensions.Y += Math.Max(60, (int)((boldTitleText != null) ? (Game1.dialogueFont.MeasureString(boldTitleText).Y + 16f) : 0f) + 32) + (int)font.MeasureString("T").Y;
                 //description
                 dimensions.Y += (int)font.MeasureString(Game1.parseText(__instance.description, Game1.smallFont, (int)ModGetDescriptionWidth.Invoke(__instance, null)!)).Y;
 
-                //space for our modded stats!
-                //we'll always show the same stats, so the vertical can be a static value
-                dimensions.Y += ((__instance.isScythe()) ? 0 : 310);
-                //measure out the horizontal space like in the base game
-                dimensions.X = (int)Math.Max(minWidth, 
-                    Math.Max(font.MeasureString("Base: " + maxStat + "-" + maxStat).X + (float)horizontalBuffer, 
-                    Math.Max(font.MeasureString("Speed: " + maxStat + "/s").X + (float)horizontalBuffer, 
-                    Math.Max(font.MeasureString("Defense: " + maxStat).X + (float)horizontalBuffer, 
-                    Math.Max(font.MeasureString("Crit. Chance: " + maxStat + "%").X + (float)horizontalBuffer, 
-                    Math.Max(font.MeasureString("Crit. Mult: " + maxStat + "X").X + (float)horizontalBuffer, 
-                    font.MeasureString("Knockback: " + maxStat).X + (float)horizontalBuffer)))))
-                    );
+                //add vertical space for our modded stats, but no added space for scythe
+                //five lines with icon and 2 without
+                dimensions.Y += ((__instance.isScythe()) ? 0 : ((int)Math.Max(font.MeasureString("TT").Y, 48f) * 5) + ((int)font.MeasureString("TT").Y * 2));
+
+                //measure out the horizontal space like in the base game (but much cleaner)
+                string[] stringsToMeasure = new string[] {
+                    DPSLabel + ": " + maxStat,
+                    BaseDamageLabel + ": " + maxStat + "-" + maxStat,
+                    AverageDamageLabel + ": " + maxStat,
+                    SpeedLabel + ": " + maxStat + "/s",
+                    DefenseLabel + ": " + maxStat,
+                    CritChanceLabel + ": " + maxStat + "%",
+                    CritMultLabel + ": " + maxStat + "X",
+                    KnockbackLabel + ": " + maxStat
+                };
+                float maxWidth = 0;
+                foreach (string text in stringsToMeasure) {
+                    float width = font.MeasureString(text).X + horizontalBuffer;
+                    maxWidth = Math.Max(maxWidth, width);
+                }
+                dimensions.X = (int)Math.Max(minWidth, maxWidth);
 
                 //add vertical space for defense since it only shows when it's >0
                 if (__instance.addedDefense.Value > 0) {
@@ -199,8 +272,12 @@ namespace StardewWeaponStatsMod {
                 foreach (BaseEnchantment enchantment in __instance.enchantments) {
                     if (enchantment.ShouldBeDisplayed()) {
                         dimensions.Y += (int)Math.Max(font.MeasureString("TT").Y, 48f);
+                        //TODO: measure the horizontal size as well
                     }
                 }
+
+                //monetary value
+                dimensions.Y += (int)((moneyAmountToDisplayAtBottom > -1) ? (font.MeasureString(moneyAmountToDisplayAtBottom.ToString() ?? "").Y + 4f) : 0f);
 
                 //this variable passes the return value to the calling method
                 __result = dimensions;
@@ -228,6 +305,7 @@ namespace StardewWeaponStatsMod {
                 //added crit chance for daggers for some reason (from DoDamage)
                 critChance = (critChance + 0.005f) * 1.12f;
             }
+            //possible bug in CritEnchantment.AddEquipmentEffects adds only 2% multiplier per level
             critChance *= 1f + Game1.player.buffs.CriticalChanceMultiplier;
 
             //statue buff to crit chance (from StardewValley.GameLocation.damageMonster)
@@ -251,23 +329,25 @@ namespace StardewWeaponStatsMod {
             //now add the average crit damage to the average damage
             float avgTotalDamage = avgDamage + avgCritDamage;
 
-            //add any attack buffs
+            //add any attack buffs (from damageMonster)
+			//this is different than the attackmultiplier buff in that it adds a fixed amount of damage
             avgTotalDamage += Game1.player.Attack * 3;
 
-            //Fighter proffession buff to damage (from damageMonster)
+            //Fighter profession buff to damage (from damageMonster)
             if (Game1.player.professions.Contains(24)) {
                 avgTotalDamage = (float)Math.Ceiling(avgTotalDamage * 1.1f);
             }
-            //Brute proffession buff to damage (from damageMonster)
+            //Brute profession buff to damage (from damageMonster)
             if (Game1.player.professions.Contains(26)) {
                 avgTotalDamage = (float)Math.Ceiling(avgTotalDamage * 1.15f);
             }
-            //Desperado proffession buff to crit damage (from damageMonster)
+            //Desperado profession buff to crit damage (from damageMonster)
             if (Game1.player.professions.Contains(29)) {
                 avgTotalDamage = avgTotalDamage + (avgTotalDamage * 2f * critChance);
             }
 
             //get weapon speed from StardewValley.Tools.MeleeWeapon.setFarmerAnimating
+            //TODO: make sure player.addedSpeed is only for attack speed, player.buffs.WeaponSpeedMultiplier might be better, although base game code uses player.addedSpeed so ?
             float speed = (float)(400 - weapon.speed.Value * 40) - Game1.player.addedSpeed * 40f;
             speed *= 1f - Game1.player.buffs.WeaponSpeedMultiplier;
 

@@ -1,0 +1,6 @@
+# 0.9.5
+* fixed a display bug with knockback not being rounded
+* changed the weapon enchantment displays to be more useful
+* added more thorough measurements for box sizing
+* added translation support and rough translations
+* added update check support
