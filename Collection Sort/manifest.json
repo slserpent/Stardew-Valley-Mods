@@ -1,0 +1,10 @@
+﻿{
+  "Name": "Better Collection Sorting",
+  "Author": "Snake",
+  "Version": "0.1.0",
+  "Description": "BetterCollectionSorting",
+  "UniqueID": "Snake.BetterCollectionSorting",
+  "EntryDll": "BetterCollectionSorting.dll",
+  "MinimumApiVersion": "4.0.0",
+  "UpdateKeys": []
+}
