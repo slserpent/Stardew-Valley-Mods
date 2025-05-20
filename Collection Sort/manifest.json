@@ -1,10 +1,10 @@
 ﻿{
   "Name": "Better Collection Sorting",
   "Author": "Snake",
-  "Version": "0.1.0",
-  "Description": "BetterCollectionSorting",
+  "Version": "1.0.0",
+  "Description": "Sorts items in the collections tabs in a more useful manner.",
   "UniqueID": "Snake.BetterCollectionSorting",
   "EntryDll": "BetterCollectionSorting.dll",
   "MinimumApiVersion": "4.0.0",
-  "UpdateKeys": []
+  "UpdateKeys": [ "Nexus:34102" ]
 }

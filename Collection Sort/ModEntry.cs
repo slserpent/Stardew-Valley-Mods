@@ -138,23 +138,23 @@ namespace BetterCollectionSorting {
                 string[] colorOrder = this.Helper.Data.ReadJsonFile<string[]>(Path.Combine("assets", "color_sorting.json"))!;
 
                 if (colorOrder == null) {
-                    Monitor.Log("Failed to load color sorting data or file was empty or missing.", LogLevel.Warn);
+                    throw new Exception("Failed to load data from color_sorting.json or file was empty or missing.");
                 } else if (colorOrder.Length == 0) {
-                    Monitor.Log("Color sorting file was empty.", LogLevel.Warn);
+                    throw new Exception("File color_sorting.json was empty.");
                 } else {
                     // Create a dictionary mapping colors to their order index
-                    ColorSortOrder = new Dictionary<string, int>();
                     int colorIndex;
                     for (colorIndex = 0; colorIndex < colorOrder.Length; colorIndex++) {
                         ColorSortOrder[colorOrder[colorIndex]] = colorIndex;
                     }
-                    ColorSortOrder["no_color"] = colorIndex;
                     
                     Monitor.Log($"Loaded {colorOrder.Length} sort IDs for color", LogLevel.Debug);
                 }
             } catch (Exception ex) {
-                Monitor.Log($"Error loading sort order for colors: {ex.Message}", LogLevel.Error);
+                Monitor.Log($"Error loading sort order for colors: {ex.Message}", LogLevel.Warn);
             }
+            // add a default color to the order in case items don't have a color or color order loading failed
+            ColorSortOrder["no_color"] = ColorSortOrder.Count;
 
             // postfix patch for the collection page constructor. sets up the item data and does initial sorting.
             harmony.Patch(
@@ -254,7 +254,7 @@ namespace BetterCollectionSorting {
                 // Log the loaded data
                 Monitor.Log($"Loaded {sortOrder.Length} sort IDs for {tabData.SimpleName}", LogLevel.Debug);
             } catch (Exception ex) {
-                Monitor.Log($"Error loading sort order for {tabData.SimpleName}: {ex.Message}", LogLevel.Error);
+                Monitor.Log($"Error loading sort order for {tabData.SimpleName}: {ex.Message}", LogLevel.Warn);
             }
         }
 
@@ -446,7 +446,7 @@ namespace BetterCollectionSorting {
                     }
                     //add any leftovers at the end with a message so users know, in case they messed up the sort order list
                     if (ItemCollectionCopy.Count > 0) {
-                        ModMonitor.Log($"Appended {ItemCollectionCopy.Count} unsorted items.", LogLevel.Debug);
+                        ModMonitor.Log($"Appended {ItemCollectionCopy.Count} unsorted items in {CurTab.SimpleName} tab.", LogLevel.Debug);
                         ObjectListSorted.AddRange(ItemCollectionCopy);
                     }
                     break;
