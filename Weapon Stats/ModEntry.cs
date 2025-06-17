@@ -330,7 +330,7 @@ namespace StardewWeaponStatsMod {
             float avgTotalDamage = avgDamage + avgCritDamage;
 
             //add any attack buffs (from damageMonster)
-			//this is different than the attackmultiplier buff in that it adds a fixed amount of damage
+            //this is different than the attackmultiplier buff in that it adds a fixed amount of damage
             avgTotalDamage += Game1.player.Attack * 3;
 
             //Fighter profession buff to damage (from damageMonster)
@@ -363,18 +363,19 @@ namespace StardewWeaponStatsMod {
                     speed /= 8f;
                 }
                 speed *= 1.3f;
+
+                //175 is the sum of the attack animation frame lengths (in ms) that occur before the final frame where the speed value is actually used (from StardewValley.FarmerSprite.getAnimationFromIndex 248)
+                //however, each animation frame length gets rounded up to a whole frame, making it 13 total frames or 217ms
+                //final animation frame must be at least one displayed frame, so limit speed to that
+                speed = 217 + Math.Max(16, speed * 2f);
             } else {
                 //if dagger
                 speed /= 4f;
-            }
 
-            //from StardewValley.FarmerSprite.getAnimationFromIndex
-            if (weapon.type.Value != 1) {
-                //175 is the sum of the attack animation frame lengths (in ms) that occur before the final frame where the speed value is actually used
-                speed = 175 + (speed * 2f);
-            } else {
-                //daggers are different. they just animate in two frames at speed
+                //daggers are different. they just animate in two frames at speed (from StardewValley.FarmerSprite.getAnimationFromIndex 276)
                 speed *= 2f;
+                //analysis shows that daggers cannot animate faster than 3 frames (two attack animation frames and then a pause), so limit speed to that (3*16.66)
+                speed = Math.Max(50, speed);
             }
 
             //calculate DPS, converting speed into attacks per second

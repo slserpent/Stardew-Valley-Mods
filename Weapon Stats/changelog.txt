@@ -1,3 +1,7 @@
+# 1.0.0
+* revised how weapon speed is calculated to be more accurate
+* added weapon speed limits
+
 # 0.9.5
 * fixed a display bug with knockback not being rounded
 * changed the weapon enchantment displays to be more useful
